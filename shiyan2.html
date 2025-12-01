@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹珠撞墙游戏（修复版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        h1, h2, h3 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4299e1;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #38b2ac;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #319795;
+        }
+        .btn-secondary {
+            background-color: #4299e1;
+        }
+        .btn-secondary:hover {
+            background-color: #3182ce;
+        }
+        .btn-danger {
+            background-color: #e53e3e;
+        }
+        .btn-danger:hover {
+            background-color: #c53030;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .game-container {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            border: 3px solid #2d3748;
+            margin: 20px auto;
+            background-color: #f8f9fa;
+            overflow: hidden;
+        }
+        .paddle {
+            position: absolute;
+            width: 80px;
+            height: 15px;
+            background-color: #e53e3e;
+            border-radius: 8px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .ball {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #4299e1;
+            border-radius: 50%;
+        }
+        .wall {
+            position: absolute;
+            background-color: #2d3748;
+        }
+        .info {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 18px;
+            color: #2d3748;
+            display: flex;
+            justify-content: space-around;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rank-list {
+            list-style: none;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .rank-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .rank-item:first-child {
+            background-color: #fff8e1;
+            font-weight: bold;
+            color: #ed8936;
+        }
+        .rank-item:nth-child(2) {
+            background-color: #f5f5f5;
+        }
+        .rank-item:nth-child(3) {
+            background-color: #ffebee;
+            color: #e53e3e;
+        }
+        .error {
+            color: #e53e3e;
+            text-align: center;
+            margin: 10px 0;
+            height: 20px;
+        }
+        .level-select {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .level-btn {
+            padding: 10px 20px;
+            margin: 0 10px;
+            background-color: #48bb78;
+        }
+        .level-btn:hover {
+            background-color: #38a169;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div class="container">
+        <div id="loginPage" class="page active">
+            <h1>弹珠撞墙游戏</h1>
+            <div class="error" id="loginError"></div>
+            <div class="form-group">
+                <label for="loginUsername">用户名</label>
+                <input type="text" id="loginUsername" placeholder="请输入用户名" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">密码</label>
+                <input type="password" id="loginPassword" placeholder="请输入密码" required>
+            </div>
+            <button onclick="login()">登录</button>
+            <div class="btn-group">
+                <button class="btn-secondary" onclick="switchPage('registerPage')">注册账号</button>
+            </div>
+        </div>
+
+        <!-- 注册页面 -->
+        <div id="registerPage" class="page">
+            <h1>账号注册</h1>
+            <div class="error" id="registerError"></div>
+            <div class="form-group">
+                <label for="regUsername">用户名</label>
+                <input type="text" id="regUsername" placeholder="请设置用户名（3-10位）" required>
+            </div>
+            <div class="form-group">
+                <label for="regPassword">密码</label>
+                <input type="password" id="regPassword" placeholder="请设置密码（6-16位）" required>
+            </div>
+            <div class="form-group">
+                <label for="regConfirmPwd">确认密码</label>
+                <input type="password" id="regConfirmPwd" placeholder="请再次输入密码" required>
+            </div>
+            <button onclick="register()">注册</button>
+            <button class="btn-secondary" onclick="switchPage('loginPage')">返回登录</button>
+        </div>
+
+        <!-- 游戏页面 -->
+        <div id="gamePage" class="page">
+            <h1>弹珠撞墙游戏</h1>
+            <div class="info">
+                <div class="info-item">用户名: <span id="currentUser"></span></div>
+                <div class="info-item">当前关卡: <span id="currentLevel">1</span></div>
+                <div class="info-item">用时: <span id="timer">00:00</span></div>
+            </div>
+            <div class="level-select" id="levelSelect">
+                <h3>选择难度</h3>
+                <button class="level-btn" onclick="startGame(1)">初级（1关）</button>
+                <button class="level-btn" onclick="startGame(2)">中级（3关）</button>
+                <button class="level-btn" onclick="startGame(3)">高级（5关）</button>
+            </div>
+            <div class="game-container" id="gameContainer">
+                <div class="paddle" id="paddle"></div>
+                <div class="ball" id="ball"></div>
+            </div>
+            <div class="btn-group">
+                <button onclick="restartGame()">重新开始</button>
+                <button class="btn-secondary" onclick="switchPage('rankPage')">查看排行榜</button>
+                <button class="btn-danger" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+
+        <!-- 排行榜页面 -->
+        <div id="rankPage" class="page">
+            <h1>游戏排行榜</h1>
+            <h3>个人历史成绩</h3>
+            <ul id="personalRank" class="rank-list"></ul>
+            <h3>总排行榜（前10名）</h3>
+            <ul id="totalRank" class="rank-list"></ul>
+            <button class="btn-secondary" onclick="switchPage('gamePage')">返回游戏</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let timerInterval = null;
+        let startTime = null;
+        let currentLevel = 1;
+        let totalLevels = 1;
+        let ballSpeedX = 3;
+        let ballSpeedY = -3;
+        let gameRunning = false;
+
+        // DOM元素
+        const gameContainer = document.getElementById('gameContainer');
+        const paddle = document.getElementById('paddle');
+        const ball = document.getElementById('ball');
+        const timerEl = document.getElementById('timer');
+        const currentLevelEl = document.getElementById('currentLevel');
+        const levelSelect = document.getElementById('levelSelect');
+
+        // 页面切换
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            if (pageId === 'rankPage') {
+                loadRankData();
+            } else if (pageId === 'gamePage') {
+                resetGameState();
+            }
+        }
+
+        // 初始化本地存储
+        function initLocalStorage() {
+            if (!localStorage.getItem('marbleUsers')) {
+                localStorage.setItem('marbleUsers', JSON.stringify({}));
+            }
+            if (!localStorage.getItem('marbleRanks')) {
+                localStorage.setItem('marbleRanks', JSON.stringify([]));
+            }
+        }
+
+        // 登录功能
+        function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorEl = document.getElementById('loginError');
+
+            if (!username || !password) {
+                errorEl.textContent = '用户名和密码不能为空';
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('marbleUsers'));
+            if (users[username] && users[username] === password) {
+                currentUser = username;
+                document.getElementById('currentUser').textContent = username;
+                errorEl.textContent = '';
+                switchPage('gamePage');
+            } else {
+                errorEl.textContent = '用户名或密码错误';
+            }
+        }
+
+        // 注册功能
+        function register() {
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+            const confirmPwd = document.getElementById('regConfirmPwd').value.trim();
+            const errorEl = document.getElementById('registerError');
+
+            if (!username || !password || !confirmPwd) {
+                errorEl.textContent = '所有字段不能为空';
+                return;
+            }
+            if (username.length < 3 || username.length > 10) {
+                errorEl.textContent = '用户名长度需在3-10位之间';
+                return;
+            }
+            if (password.length < 6 || password.length > 16) {
+                errorEl.textContent = '密码长度需在6-16位之间';
+                return;
+            }
+            if (password !== confirmPwd) {
+                errorEl.textContent = '两次输入的密码不一致';
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('marbleUsers'));
+            if (users[username]) {
+                errorEl.textContent = '该用户名已存在';
+                return;
+            }
+
+            users[username] = password;
+            localStorage.setItem('marbleUsers', JSON.stringify(users));
+            errorEl.textContent = '注册成功！即将跳转到登录页';
+            setTimeout(() => switchPage('loginPage'), 1500);
+        }
+
+        // 退出登录
+        function logout() {
+            clearInterval(timerInterval);
+            currentUser = null;
+            currentLevel = 1;
+            totalLevels = 1;
+            gameRunning = false;
+            timerEl.textContent = '00:00';
+            currentLevelEl.textContent = '1';
+            switchPage('loginPage');
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        // 生成关卡（撞墙）
+        function generateWalls(level) {
+            document.querySelectorAll('.wall').forEach(wall => wall.remove());
+            
+            const wallCount = level * 2 + 1;
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+
+            for (let i = 0; i < wallCount; i++) {
+                const wall = document.createElement('div');
+                wall.className = 'wall';
+                
+                const width = Math.random() * 80 + 50;
+                const height = 10;
+                const x = Math.random() * (containerWidth - width);
+                const y = Math.random() * (containerHeight / 2) + 50;
+
+                wall.style.width = `${width}px`;
+                wall.style.height = `${height}px`;
+                wall.style.left = `${x}px`;
+                wall.style.top = `${y}px`;
+
+                gameContainer.appendChild(wall);
+            }
+        }
+
+        // 开始游戏
+        function startGame(levelType) {
+            levelSelect.style.display = 'none';
+            currentLevel = 1;
+            totalLevels = levelType === 1 ? 1 : (levelType === 2 ? 3 : 5);
+            currentLevelEl.textContent = currentLevel;
+            
+            generateWalls(currentLevel);
+            resetBallPosition();
+            
+            if (timerInterval) clearInterval(timerInterval);
+            startTime = new Date().getTime();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            gameRunning = true;
+            moveBall();
+        }
+
+        // 重置游戏状态
+        function resetGameState() {
+            clearInterval(timerInterval);
+            gameRunning = false;
+            timerEl.textContent = '00:00';
+            currentLevelEl.textContent = '1';
+            levelSelect.style.display = 'block';
+            document.querySelectorAll('.wall').forEach(wall => wall.remove());
+            resetBallPosition();
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            resetGameState();
+            startGame(totalLevels === 1 ? 1 : (totalLevels === 3 ? 2 : 3));
+        }
+
+        // 重置球的位置
+        function resetBallPosition() {
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+            
+            ball.style.left = `${containerWidth / 2 - 7.5}px`;
+            ball.style.top = `${containerHeight - 50}px`;
+            
+            ballSpeedX = currentLevel * 2.5;
+            ballSpeedY = -currentLevel * 2.5;
+        }
+
+        // 更新计时器
+        function updateTimer() {
+            const currentTime = new Date().getTime();
+            const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+            const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${minutes}:${seconds}`;
+        }
+
+        // 移动球（修复碰撞检测逻辑）
+        function moveBall() {
+            if (!gameRunning) return;
+
+            let ballX = parseFloat(ball.style.left);
+            let ballY = parseFloat(ball.style.top);
+            const ballSize = ball.offsetWidth;
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+            
+            // 获取挡板的实际位置和尺寸（修复核心）
+            const paddleRect = paddle.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            const paddleX = paddleRect.left - gameContainerRect.left; // 挡板相对于容器的X坐标
+            const paddleY = paddleRect.top - gameContainerRect.top;   // 挡板相对于容器的Y坐标
+            const paddleWidth = paddle.offsetWidth;
+            const paddleHeight = paddle.offsetHeight;
+
+            // 碰撞检测 - 左右墙壁
+            if (ballX <= 0 || ballX >= containerWidth - ballSize) {
+                ballSpeedX = -ballSpeedX;
+            }
+
+            // 碰撞检测 - 上墙壁
+            if (ballY <= 0) {
+                ballSpeedY = -ballSpeedY;
+            }
+
+            // 修复挡板碰撞检测逻辑
+            if (
+                ballY + ballSize >= paddleY &&          // 球底部接触挡板顶部
+                ballX + ballSize >= paddleX &&          // 球右侧接触挡板左侧
+                ballX <= paddleX + paddleWidth &&       // 球左侧接触挡板右侧
+                ballY <= paddleY + paddleHeight         // 球顶部接触挡板底部
+            ) {
+                ballSpeedY = -Math.abs(ballSpeedY); // 确保向上反弹
+                // 根据碰撞位置调整X方向速度（增加真实感）
+                const hitPosition = (ballX + ballSize/2) - (paddleX + paddleWidth/2);
+                ballSpeedX = hitPosition * 0.3; // 边缘碰撞更倾斜
+            }
+
+            // 碰撞检测 - 墙壁
+            const walls = document.querySelectorAll('.wall');
+            walls.forEach(wall => {
+                const wallRect = wall.getBoundingClientRect();
+                const wallX = wallRect.left - gameContainerRect.left;
+                const wallY = wallRect.top - gameContainerRect.top;
+                const wallWidth = wall.offsetWidth;
+                const wallHeight = wall.offsetHeight;
+
+                if (
+                    ballX + ballSize > wallX &&
+                    ballX < wallX + wallWidth &&
+                    ballY + ballSize > wallY &&
+                    ballY < wallY + wallHeight
+                ) {
+                    wall.remove();
+                    ballSpeedY = -ballSpeedY;
+
+                    if (document.querySelectorAll('.wall').length === 0) {
+                        if (currentLevel < totalLevels) {
+                            currentLevel++;
+                            currentLevelEl.textContent = currentLevel;
+                            setTimeout(() => generateWalls(currentLevel), 500);
+                        } else {
+                            completeGame();
+                        }
+                    }
+                }
+            });
+
+            // 球落地（游戏失败）
+            if (ballY >= containerHeight - ballSize) {
+                alert(`游戏失败！当前关卡：${currentLevel}，用时：${timerEl.textContent}`);
+                restartGame();
+                return;
+            }
+
+            // 更新球的位置
+            ball.style.left = `${ballX + ballSpeedX}px`;
+            ball.style.top = `${ballY + ballSpeedY}px`;
+
+            requestAnimationFrame(moveBall);
+        }
+
+        // 修复挡板跟随鼠标逻辑（更精准）
+        gameContainer.addEventListener('mousemove', (e) => {
+            const containerRect = gameContainer.getBoundingClientRect();
+            const paddleWidth = paddle.offsetWidth;
+            let paddleX = e.clientX - containerRect.left - paddleWidth / 2;
+
+            if (paddleX < 0) paddleX = 0;
+            if (paddleX > containerRect.width - paddleWidth) {
+                paddleX = containerRect.width - paddleWidth;
+            }
+
+            paddle.style.left = `${paddleX}px`;
+        });
+
+        // 完成游戏（记录成绩）
+        function completeGame() {
+            clearInterval(timerInterval);
+            const elapsedTime = timerEl.textContent;
+            const [minutes, seconds] = elapsedTime.split(':').map(Number);
+            const totalSeconds = minutes * 60 + seconds;
+
+            const ranks = JSON.parse(localStorage.getItem('marbleRanks'));
+            ranks.push({
+                username: currentUser,
+                level: totalLevels,
+                time: elapsedTime,
+                totalSeconds: totalSeconds,
+                date: new Date().toLocaleString()
+            });
+            localStorage.setItem('marbleRanks', JSON.stringify(ranks));
+
+            alert(`恭喜通关！总关卡：${totalLevels}，总用时：${elapsedTime}`);
+            resetGameState();
+        }
+
+        // 加载排行榜数据
+        function loadRankData() {
+            const ranks = JSON.parse(localStorage.getItem('marbleRanks'));
+            const personalRankEl = document.getElementById('personalRank');
+            const totalRankEl = document.getElementById('totalRank');
+
+            personalRankEl.innerHTML = '';
+            totalRankEl.innerHTML = '';
+
+            const personalRanks = ranks
+                .filter(record => record.username === currentUser)
+                .sort((a, b) => a.totalSeconds - b.totalSeconds);
+
+            if (personalRanks.length === 0) {
+                personalRankEl.innerHTML = '<li class="rank-item">暂无历史成绩</li>';
+            } else {
+                personalRanks.forEach((record, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'rank-item';
+                    li.innerHTML = `
+                        <span>第${index + 1}次通关</span>
+                        <span>难度：${record.level}级</span>
+                        <span>用时：${record.time}</span>
+                        <span>日期：${record.date}</span>
+                    `;
+                    personalRankEl.appendChild(li);
+                });
+            }
+
+            const userBestRanks = {};
+            ranks.forEach(record => {
+                if (!userBestRanks[record.username] || record.totalSeconds < userBestRanks[record.username].totalSeconds) {
+                    userBestRanks[record.username] = record;
+                }
+            });
+
+            const totalRanks = Object.values(userBestRanks)
+                .sort((a, b) => a.totalSeconds - b.totalSeconds)
+                .slice(0, 10);
+
+            if (totalRanks.length === 0) {
+                totalRankEl.innerHTML = '<li class="rank-item">暂无排行榜数据</li>';
+            } else {
+                totalRanks.forEach((record, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'rank-item';
+                    li.innerHTML = `
+                        <span>第${index + 1}名</span>
+                        <span>用户：${record.username}</span>
+                        <span>难度：${record.level}级</span>
+                        <span>最佳用时：${record.time}</span>
+                    `;
+                    totalRankEl.appendChild(li);
+                });
+            }
+        }
+
+        // 初始化
+        window.onload = function() {
+            initLocalStorage();
+            resetBallPosition();
+        };
+    </script>
+</body>
+</html>
